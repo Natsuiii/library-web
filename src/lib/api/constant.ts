@@ -1,4 +1,4 @@
-import { Author, Book, BookCategory, BookReviewsData } from "../constant";
+import { Author, Book, BookCategory, BookReviewsData, User } from "../constant";
 
 export type RecommendApiResponse = {
   success: boolean;
@@ -57,5 +57,21 @@ export type CategoriesApiResponse = {
   message: string;
   data: {
     categories: BookCategory[];
+  };
+};
+
+
+
+export type LoginSuccessResponse = {
+  token: string;
+  user: User;
+};
+
+export type LoginApiResponse = {
+  success: boolean;
+  message: string;
+  data: {
+    token: string;
+    user: User;
   };
 };

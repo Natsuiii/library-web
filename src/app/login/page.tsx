@@ -11,35 +11,11 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, BookOpen } from "lucide-react";
+import { LoginRequest } from "@/lib/constant";
+import { LoginApiResponse, LoginSuccessResponse } from "@/lib/api/constant";
 
 const LOGIN_URL =
   "https://be-library-api-xh3x6c5iiq-et.a.run.app/api/auth/login";
-
-type LoginRequest = {
-  email: string;
-  password: string;
-};
-
-type User = {
-  id: number;
-  name: string;
-  email: string;
-  role: string;
-};
-
-type LoginSuccessResponse = {
-  token: string;
-  user: User;
-};
-
-type LoginApiResponse = {
-  success: boolean;
-  message: string;
-  data: {
-    token: string;
-    user: User;
-  };
-};
 
 async function loginApi(values: LoginRequest): Promise<LoginSuccessResponse> {
   try {

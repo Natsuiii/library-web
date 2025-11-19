@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { CSSProperties, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -10,24 +10,31 @@ import dayjs from "dayjs";
 import { Header } from "@/components/layouts/header";
 import { Footer } from "@/components/layouts/footer";
 import { Button } from "@/components/ui/button";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Star, Share2, ChevronRight } from "lucide-react";
-import { Author, Book, BookCategory, BookReview, BookReviewsData } from "@/lib/constant";
+import {
+  Author,
+  Book,
+  BookCategory,
+  BookReview,
+  BookReviewsData,
+  CART_KEY,
+  CartItem,
+} from "@/lib/constant";
 import BookCard from "@/components/BookCard";
-import { BookDetailApiResponse, BookReviewsApiResponse, BooksApiResponse } from "@/lib/api/constant";
+import {
+  BookDetailApiResponse,
+  BookReviewsApiResponse,
+  BooksApiResponse,
+} from "@/lib/api/constant";
 import ReviewCard from "@/components/ReviewCard";
+import { toast } from "sonner";
+import { getCurrentUserEmail, loadCartForCurrentUser, saveCartForCurrentUser } from "@/lib/cart/constant";
 
-const BOOKS_URL =
-  "https://be-library-api-xh3x6c5iiq-et.a.run.app/api/books";
+const BOOKS_URL = "https://be-library-api-xh3x6c5iiq-et.a.run.app/api/books";
 
 async function fetchBookDetail(id: string): Promise<Book> {
-  const res = await axios.get<BookDetailApiResponse>(
-    `${BOOKS_URL}/${id}`
-  );
+  const res = await axios.get<BookDetailApiResponse>(`${BOOKS_URL}/${id}`);
 
   if (!res.data.success) {
     throw new Error(res.data.message || "Failed to load book detail");
@@ -73,22 +80,19 @@ async function fetchRelatedBooks(
   });
 
   if (!res.data.success) {
-    throw new Error(
-      res.data.message || "Failed to load related books"
-    );
+    throw new Error(res.data.message || "Failed to load related books");
   }
 
   const books = res.data.data.books;
   return books.filter((b) => String(b.id) !== String(currentBookId));
 }
 
-
 export default function BookDetailClient() {
   const params = useParams<{ id: string }>();
-  const id = params?.id; 
+  const id = params?.id;
 
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
-  const [reviewLimit, setReviewLimit] = useState(6); 
+  const [reviewLimit, setReviewLimit] = useState(6);
 
   const {
     data: book,
@@ -148,6 +152,98 @@ export default function BookDetailClient() {
   const canLoadMore =
     totalReviews > 0 && reviews.length < totalReviews && !isReviewsLoading;
 
+  function getCartFromStorage(): CartItem[] {
+    if (typeof window === "undefined") return [];
+    try {
+      const raw = localStorage.getItem(CART_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw) as CartItem[] | any[];
+
+      return parsed.map((item) => {
+        if (typeof item === "number") {
+          return {
+            id: item,
+            title: "",
+            categoryName: "",
+            authorName: "",
+            coverImage: null,
+            isChecked: false,
+          } as CartItem;
+        }
+
+        return {
+          id: item.id,
+          title: item.title ?? "",
+          categoryName: item.categoryName ?? "",
+          authorName: item.authorName ?? "",
+          coverImage: item.coverImage ?? null,
+          isChecked:
+            typeof item.isChecked === "boolean" ? item.isChecked : false,
+        } satisfies CartItem;
+      });
+    } catch {
+      return [];
+    }
+  }
+
+  function saveCartToStorage(items: CartItem[]) {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(CART_KEY, JSON.stringify(items));
+  }
+
+  const handleAddToCart = (book: Book) => {
+    if (typeof window === "undefined" || !book) return;
+
+    const email = getCurrentUserEmail();
+    if (!email) {
+      toast.warning("Please login first", {
+        description: "You need to login before adding books to cart",
+        position: "top-right",
+      });
+      return;
+    }
+
+    const current = loadCartForCurrentUser();
+
+    const exists = current.some((item: any) => item.id === book.id);
+    if (exists) {
+      toast.warning("Book already in cart", {
+        description: "You have already added this book to your cart",
+        position: "top-right",
+        style: {
+          "--normal-bg":
+            "light-dark(var(--color-amber-600), var(--color-amber-400))",
+          "--normal-text": "var(--color-white)",
+          "--normal-border":
+            "light-dark(var(--color-amber-600), var(--color-amber-400))",
+        } as CSSProperties,
+      });
+      return;
+    }
+
+    const newItem: CartItem = {
+      id: book.id,
+      title: book.title,
+      categoryName: book.category?.name ?? "",
+      authorName: book.author?.name ?? "",
+      coverImage: book.coverImage ?? null,
+      isChecked: false,
+    };
+
+    const updated = [...current, newItem];
+    saveCartForCurrentUser(updated);
+    console.log("Cart updated:", updated);
+    toast.success("Successfully added to cart", {
+      position: "top-right",
+      style: {
+        "--normal-bg":
+          "light-dark(var(--color-green-600), var(--color-green-400))",
+        "--normal-text": "var(--color-white)",
+        "--normal-border":
+          "light-dark(var(--color-green-600), var(--color-green-400))",
+      } as React.CSSProperties,
+    });
+  };
   return (
     <>
       <Header />
@@ -167,9 +263,7 @@ export default function BookDetailClient() {
           </nav>
 
           {!id && (
-            <p className="text-sm text-red-500">
-              Invalid book id in URL.
-            </p>
+            <p className="text-sm text-red-500">Invalid book id in URL.</p>
           )}
 
           {id && isLoading && (
@@ -248,9 +342,7 @@ export default function BookDetailClient() {
                           ? book.reviewCount
                           : "-"}
                       </div>
-                      <div className="text-xs text-slate-500">
-                        Reviews
-                      </div>
+                      <div className="text-xs text-slate-500">Reviews</div>
                     </div>
                   </div>
 
@@ -271,7 +363,7 @@ export default function BookDetailClient() {
                       className="rounded-full px-6 border-slate-900 text-slate-900"
                       type="button"
                       onClick={() => {
-                        console.log("Add to cart clicked", book.id);
+                        handleAddToCart(book);
                       }}
                     >
                       Add to Cart
@@ -298,9 +390,7 @@ export default function BookDetailClient() {
                   </div>
 
                   {copyMessage && (
-                    <p className="mt-2 text-xs text-green-600">
-                      {copyMessage}
-                    </p>
+                    <p className="mt-2 text-xs text-green-600">{copyMessage}</p>
                   )}
                 </div>
               </div>
@@ -343,32 +433,28 @@ export default function BookDetailClient() {
                     </p>
                   )}
 
-                {!isReviewsLoading &&
-                  !isReviewsError &&
-                  reviews.length > 0 && (
-                    <>
-                      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {reviews.map((review) => (
-                          <ReviewCard key={review.id} review={review} />
-                        ))}
-                      </div>
+                {!isReviewsLoading && !isReviewsError && reviews.length > 0 && (
+                  <>
+                    <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {reviews.map((review) => (
+                        <ReviewCard key={review.id} review={review} />
+                      ))}
+                    </div>
 
-                      {canLoadMore && (
-                        <div className="flex justify-center mt-6">
-                          <Button
-                            variant="outline"
-                            className="rounded-full px-6"
-                            onClick={() =>
-                              setReviewLimit((prev) => prev + 6)
-                            }
-                            disabled={isReviewsLoading}
-                          >
-                            Load More
-                          </Button>
-                        </div>
-                      )}
-                    </>
-                  )}
+                    {canLoadMore && (
+                      <div className="flex justify-center mt-6">
+                        <Button
+                          variant="outline"
+                          className="rounded-full px-6"
+                          onClick={() => setReviewLimit((prev) => prev + 6)}
+                          disabled={isReviewsLoading}
+                        >
+                          Load More
+                        </Button>
+                      </div>
+                    )}
+                  </>
+                )}
               </section>
 
               <section className="mt-10 border-t border-slate-200 pt-6">

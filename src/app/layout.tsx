@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
 import { Providers } from "@/components/providers";
+import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
   title: "Library Web",
@@ -17,6 +18,7 @@ export default function RootLayout({
     <html lang="en">
       <body className="min-h-screen bg-slate-950 text-slate-50">
         <Providers>{children}</Providers>
+         <Toaster />
       </body>
     </html>
   );

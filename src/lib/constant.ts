@@ -1,3 +1,16 @@
+export type LoginRequest = {
+  email: string;
+  password: string;
+};
+
+export type User = {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  phone?: string | null;
+};
+
 export type Book = {
   id: number;
   title: string;
@@ -72,3 +85,15 @@ export type RelatedBook = {
   author: Author;
   category: BookCategory;
 };
+
+export type CartItem = {
+  id: number;
+  title: string;
+  categoryName: string;
+  authorName: string;
+  coverImage: string | null;
+  isChecked: boolean;
+};
+
+export const CART_KEY = "cart";
+export const AUTH_KEY = "auth";

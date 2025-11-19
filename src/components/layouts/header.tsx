@@ -83,6 +83,7 @@ export function Header() {
               <button
                 type="button"
                 className="relative rounded-full h-9 w-9 flex items-center justify-center hover:bg-slate-100 transition"
+                onClick={() => router.push("/cart")}
               >
                 <ShoppingBag className="h-5 w-5 text-slate-800" />
                 <span className="absolute -top-1 -right-0.5 h-4 min-w-[16px] px-1 rounded-full bg-rose-500 text-[10px] text-white flex items-center justify-center">
