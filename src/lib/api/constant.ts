@@ -75,3 +75,25 @@ export type LoginApiResponse = {
     user: User;
   };
 };
+
+export type MeApiResponse = {
+  success: boolean;
+  message: string;
+  data: {
+    profile: {
+      id: number;
+      name: string;
+      email: string;
+      role: string;
+      createdAt: string;
+      phone?: string;
+    };
+    loanStats: {
+      borrowed: number;
+      late: number;
+      returned: number;
+      total: number;
+    };
+    reviewsCount: number;
+  };
+};
